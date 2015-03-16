@@ -74,7 +74,7 @@ def feature_selcet_discrete(xy):
     ylabel = [int(m[-1]) for m in xy]
     entro_before = inform_entrop(ylabel)
     max_inform_gain = 0
-    best_feature = -float('inf')
+    best_feature = 0
     for i in range(len(xx[0])):
         featurei = [m[i] for m in xx]
         values = set(featurei)
@@ -125,13 +125,38 @@ def train(trainfile):
     return tree_root
 def predict(root,testfile):
     (xx,lable,feature_index) = load_csv(testfile)
-    (xx_filter,lable_filter) = finite_feature_filter(xx,lable)
     result = []
-    temp = root
     for data in xx:
+        temp = root
         while temp.leaf == False:
+            if data[temp.feature] not in temp.child[lable[temp.feature]].keys():
+                break
             temp = temp.child[lable[temp.feature]][data[temp.feature]]
-        result.append(temp.feature)
+        if temp.leaf == True:
+            result.append(temp.feature)
+        else:
+            result.append(0)
     return result
+def rate(result,lable):
+    right = 0
+    for i in range(len(result)):
+        if result[i] == lable[i]:
+            right += 1
+    return float(right)/len(result)
+def randomforest(trainfile,testfile):
+        root = train(trainfile)
+        pred = array(predict(root,testfile))
+        for i in range(300):
+            root = train(trainfile)
+            pred = pred + array(predict(root,testfile))
+        pred = pred/float(301)
+        result = []
+        for data in pred:
+            if data >= 0.5:
+                result.append(1)
+            else:
+                result.append(0)
+        return result
+            
         
     
