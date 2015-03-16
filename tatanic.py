@@ -16,14 +16,19 @@ def load_csv(filename):
     for row in csv_file_object:
         data.append(row)
     data = array(data)
-    return data
+    feature_index = {}
+    for index in range(len(csv_head)):
+        feature_index[csv_head[index]] = index
+    return (data, csv_head, feature_index)
 def inform_entrop(label):
     n = len(label)
     plus_count = 0
     for i in label:
-        if int(i) == 1:
+        if i == 1:
             plus_count += 1
     prob_plus = float(plus_count)/n
+    if prob_plus >= 1.0 - 1.0e-8 or prob_plus <= 1.0e-8:
+        return 0
     return -prob_plus*log(prob_plus) - (1-prob_plus)*log(1-prob_plus)
 def gini_ind(label):
     plus_count = sum(label==1)
@@ -34,12 +39,15 @@ def gini_ind(label):
             plus_count += 1
     prob_plus = float(plus_count)/n
     return prob_plus*(1-prob_plus)
-def finite_feature_filter(data):
+def finite_feature_filter(data,lable):
     data = array(data)
     result = []
+    labl = []
     for i in range(len(data[0]) - 1):
         if len(set(data[:,i])) < 8:
             result.append(data[:,i])
+            labl.append(lable[i])
     result.append(data[:,-1])
+    labl.append(lable[-1])
     result = array(result).transpose()
-    return result
+    return (result,labl)

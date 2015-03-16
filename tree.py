@@ -2,37 +2,58 @@
 """
 Created on Mon Feb 02 17:04:35 2015
 
-@author: Administrator
+@author: Xiaoxian
+@version: 0.0
 """
-from tatanic import inform_entrop,gini_ind,finite_feature_filter
+from tatanic import inform_entrop,gini_ind,finite_feature_filter, load_csv
+import random
 class tree_node:
-    def __init__(self,value,leaf):
-        self.value = []
-        for data in value:
-            self.value.append(data)
+    def __init__(self,feature,leaf,lable):
+        self.feature = feature
         self.leaf = leaf
-        self.left_child = None
-        self.right_slib = None
-def tree_build(xy):
-    label = [m[-1] for m in xy]
+        self.child = {lable:{}}
+def tree_build(xy,lab,feature_index):
+    label = [int(m[-1]) for m in xy]
     xx = [m[:-1] for m in xy]
     labelset = set(label)
     if len(labelset) == 1:
-        return tree_node([label[0]],True)
-    elif unseprable(xx):
+        return tree_node(label[0],True,None)
+    elif unseprable(xx) or len(xx) == 0:
         plus_count = 0
         for data in label:
             if data == 1:
                 plus_count += 1
-        if plus_count >= len(label):
-            return tree_node([1],True)
+        if plus_count >= float(len(label))/2.0:
+            return tree_node(1,True,None)
+        else:
+            return tree_node(0,True,None)
     else:
-        discrete_feature = finite_feature_filter(xy)
-    return 0
+        best_feature = feature_selcet_discrete(xy)
+        feature_value = lab[best_feature]
+        featurei = [m[best_feature] for m in xy]
+        values = set(featurei)
+        values_list = []
+        for data in values:
+            values_list.append(data)
+        root = tree_node(feature_index[feature_value],False,feature_value) # tree root
+        for value in values_list:
+            child_data = []
+            for data in xy:
+                if data[best_feature] == value:
+                    reduc_data = []
+                    for number in data[:best_feature]:
+                        reduc_data.append(number)
+                    reduc_data.extend(data[best_feature+1:])
+                    child_data.append(reduc_data[:])
+                    reduc_feature = lab[:best_feature]
+                    reduc_feature.extend(lab[best_feature+1:])
+            root.child[feature_value][value] = tree_build(child_data,reduc_feature,feature_index)
+    return root
         
 def unseprable(xx):
     for data in xx:
-        if xx[0] != data: return False
+        for index in range(len(data) - 1):
+            if xx[0][index] != data[index]: return False
     return True        
 def major(a):
     #calculate the majority of a dictionary and return the key
@@ -50,9 +71,8 @@ def major(a):
 def feature_selcet_discrete(xy):
     #select the largest information gain for the finite values feature
     xx = [m[0:-1] for m in xy]
-    ylabel = [m[-1] for m in xy]
+    ylabel = [int(m[-1]) for m in xy]
     entro_before = inform_entrop(ylabel)
-    print entro_before
     max_inform_gain = 0
     best_feature = -float('inf')
     for i in range(len(xx[0])):
@@ -69,10 +89,11 @@ def feature_selcet_discrete(xy):
                     if data[i] == branch:
                         branch_x.append(data)
                 sep_x.append(branch_x)
-                entrop += float(len(branch_x))/len(ylabel)*inform_entrop([m[-1] for m in branch_x])
-        if entro_before - entrop > max_inform_gain:
-            max_inform_gain = entro_before - entrop
-            best_feature = i
+                label = [int(m[-1]) for m in branch_x]
+                entrop += float(len(branch_x))/len(ylabel)*inform_entrop(label)
+            if entro_before - entrop > max_inform_gain:
+                max_inform_gain = entro_before - entrop
+                best_feature = i
     return best_feature
 def feature_select_continue(xy):
     xx = [m[0:-1] for m in xy]
@@ -93,5 +114,24 @@ def feature_select_continue(xy):
                 best_theta = thetaj
                 best_feature = i
     return (best_theta,best_feature)
-                
+def train(trainfile):
+    (data,feature,feature_index) = load_csv(trainfile)
+    (data_filter,feature_filter) = finite_feature_filter(data,feature)
+    data_random = []
+    for i in range(len(data)):
+        k = random.randint(0,len(data_filter) -1)
+        data_random.append(data_filter[k][:])
+    tree_root = tree_build(data_random,feature_filter,feature_index)
+    return tree_root
+def predict(root,testfile):
+    (xx,lable,feature_index) = load_csv(testfile)
+    (xx_filter,lable_filter) = finite_feature_filter(xx,lable)
+    result = []
+    temp = root
+    for data in xx:
+        while temp.leaf == False:
+            temp = temp.child[lable[temp.feature]][data[temp.feature]]
+        result.append(temp.feature)
+    return result
+        
     
