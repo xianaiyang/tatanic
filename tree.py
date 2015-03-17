@@ -7,6 +7,8 @@ Created on Mon Feb 02 17:04:35 2015
 """
 from tatanic import inform_entrop,gini_ind,finite_feature_filter, load_csv
 import random
+import csv
+from numpy import *
 class tree_node:
     def __init__(self,feature,leaf,lable):
         self.feature = feature
@@ -119,7 +121,7 @@ def train(trainfile):
     (data_filter,feature_filter) = finite_feature_filter(data,feature)
     data_random = []
     for i in range(len(data)):
-        k = random.randint(0,len(data_filter) -1)
+        k = random.randint(0,len(data_filter))
         data_random.append(data_filter[k][:])
     tree_root = tree_build(data_random,feature_filter,feature_index)
     return tree_root
@@ -135,7 +137,7 @@ def predict(root,testfile):
         if temp.leaf == True:
             result.append(temp.feature)
         else:
-            result.append(0)
+            result.append(random.randint(0,2))
     return result
 def rate(result,lable):
     right = 0
@@ -157,6 +159,17 @@ def randomforest(trainfile,testfile):
             else:
                 result.append(0)
         return result
+def write_submit():
+    result = randomforest("train.csv","test.csv")
+    (data_test,a,b) = load_csv("test.csv")
+    prediction_file = open("submit.csv","wb")
+    prediction_file_object = csv.writer(prediction_file)
+    prediction_file_object.writerow(["PassengerId","Survived"])
+    for i in range(len(result)):
+        if result[i] == 0:
+            prediction_file_object.writerow([data_test[i][0],"0"])
+        else:
+            prediction_file_object.writerow([data_test[i][0],"1"])
+    return
             
-        
     
